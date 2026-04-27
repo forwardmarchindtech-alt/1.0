@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   const { prompt, type } = req.body || {};
   if (!prompt) return res.status(400).json({ error: "prompt is required" });
 
-  const fullPrompt = (typePrompts[type] || typePrompts.floorplan) + prompt + ", high quality, detailed";
+  const fullPrompt = (typePrompts[type] || typePrompts.floorplan) + prompt + ", high quality, detailed, professional";
 
   try {
     const hfResponse = await fetch(
@@ -31,22 +31,25 @@ export default async function handler(req, res) {
         headers: {
           Authorization: `Bearer ${HF_API_TOKEN}`,
           "Content-Type": "application/json",
-          "x-wait-for-model": "true",
         },
         body: JSON.stringify({
           inputs: fullPrompt,
-          parameters: { num_inference_steps: 4, width: 768, height: 512 },
+          parameters: {
+            num_inference_steps: 4,
+            width: 768,
+            height: 512,
+          },
         }),
       }
     );
 
     if (!hfResponse.ok) {
       const errText = await hfResponse.text();
-      console.error("HF error:", hfResponse.status, errText.slice(0, 200));
-      if (hfResponse.status === 401) return res.status(401).json({ error: "Invalid Hugging Face token." });
+      console.error("HF error:", hfResponse.status, errText.slice(0, 300));
+      if (hfResponse.status === 401) return res.status(401).json({ error: "Invalid Hugging Face token. Check HUGGINGFACE_API_TOKEN in Vercel." });
       if (hfResponse.status === 429) return res.status(429).json({ error: "Rate limited. Wait 30 seconds and retry." });
       if (hfResponse.status === 503) return res.status(503).json({ error: "Model loading. Wait 20 seconds and retry." });
-      return res.status(hfResponse.status).json({ error: `HF error ${hfResponse.status}: ${errText.slice(0, 100)}` });
+      return res.status(hfResponse.status).json({ error: `HF error ${hfResponse.status}: ${errText.slice(0, 150)}` });
     }
 
     const imageBuffer = await hfResponse.arrayBuffer();
